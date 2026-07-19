@@ -54,6 +54,7 @@ public final class Blockcommand extends JavaPlugin implements CommandExecutor, T
     private String bypassPermission;
     private String adminPermission;
     private String defaultLanguage;
+    private final Map<String, FileConfiguration> langConfigs = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -82,9 +83,10 @@ public final class Blockcommand extends JavaPlugin implements CommandExecutor, T
         saveDefaultConfig();
         reloadConfig();
         FileConfiguration config = getConfig();
+        loadLangConfigs();
 
         syncMode = config.getString("sync-mode", "rcon").toLowerCase();
-        dbPath = config.getString("database-path", "/Users/stepan/Проекты/SkyLands/data/users.db");
+        dbPath = config.getString("database-path", "plugins/BlockCommand/users.db");
 
         // Load global allowed commands
         allowedCommands = new HashSet<>();
@@ -280,6 +282,32 @@ public final class Blockcommand extends JavaPlugin implements CommandExecutor, T
 
         return false;
     }
+    public void loadLangConfigs() {
+        langConfigs.clear();
+        File langFolder = new File(getDataFolder(), "lang");
+        if (!langFolder.exists()) {
+            langFolder.mkdirs();
+        }
+        
+        try {
+            saveResource("lang/messages_ru.yml", false);
+        } catch (Exception ignored) {}
+        try {
+            saveResource("lang/messages_en.yml", false);
+        } catch (Exception ignored) {}
+
+        File[] files = langFolder.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && file.getName().startsWith("messages_") && file.getName().endsWith(".yml")) {
+                    String code = file.getName().substring(9, file.getName().length() - 4).toLowerCase();
+                    FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
+                    langConfigs.put(code, cfg);
+                }
+            }
+        }
+    }
+
     /**
      * Resolves a localized message based on player locale setting.
      */
@@ -290,21 +318,33 @@ public final class Blockcommand extends JavaPlugin implements CommandExecutor, T
             lang = locale.split("_")[0];
         }
 
-        // 1. Try full locale (e.g. ru_ru)
-        String msg = getConfig().getString("languages." + locale + ".messages." + messageKey);
-        if (msg != null) return msg;
+        // 1. Try full locale config
+        FileConfiguration locCfg = langConfigs.get(locale);
+        if (locCfg != null) {
+            String msg = locCfg.getString("messages." + messageKey);
+            if (msg != null) return msg;
+        }
 
-        // 2. Try short language (e.g. ru)
-        msg = getConfig().getString("languages." + lang + ".messages." + messageKey);
-        if (msg != null) return msg;
+        // 2. Try short lang config
+        FileConfiguration langCfg = langConfigs.get(lang);
+        if (langCfg != null) {
+            String msg = langCfg.getString("messages." + messageKey);
+            if (msg != null) return msg;
+        }
 
         // 3. Try default language
-        msg = getConfig().getString("languages." + defaultLanguage + ".messages." + messageKey);
-        if (msg != null) return msg;
+        FileConfiguration defCfg = langConfigs.get(defaultLanguage);
+        if (defCfg != null) {
+            String msg = defCfg.getString("messages." + messageKey);
+            if (msg != null) return msg;
+        }
 
-        // 4. Fallback to default ru locale structure if nothing else is defined
-        msg = getConfig().getString("languages.ru.messages." + messageKey);
-        if (msg != null) return msg;
+        // 4. Try hardcoded ru fallback
+        FileConfiguration ruCfg = langConfigs.get("ru");
+        if (ruCfg != null) {
+            String msg = ruCfg.getString("messages." + messageKey);
+            if (msg != null) return msg;
+        }
 
         return defaultValue;
     }
@@ -322,14 +362,17 @@ public final class Blockcommand extends JavaPlugin implements CommandExecutor, T
         String[] localesToCheck = { locale, lang, defaultLanguage, "ru" };
 
         for (String loc : localesToCheck) {
-            // Check exact pattern (e.g. "co i")
-            String desc = getConfig().getString("languages." + loc + ".help-descriptions." + pattern);
-            if (desc != null) return desc;
+            FileConfiguration locCfg = langConfigs.get(loc);
+            if (locCfg != null) {
+                // Check exact pattern (e.g. "co i")
+                String desc = locCfg.getString("help-descriptions." + pattern);
+                if (desc != null) return desc;
 
-            // Check root command (e.g. "co")
-            String baseCmd = pattern.contains(" ") ? pattern.split(" ")[0] : pattern;
-            desc = getConfig().getString("languages." + loc + ".help-descriptions." + baseCmd);
-            if (desc != null) return desc;
+                // Check root command (e.g. "co")
+                String baseCmd = pattern.contains(" ") ? pattern.split(" ")[0] : pattern;
+                desc = locCfg.getString("help-descriptions." + baseCmd);
+                if (desc != null) return desc;
+            }
         }
 
         // Fallback to server command description

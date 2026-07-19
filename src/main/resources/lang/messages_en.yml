@@ -1,0 +1,23 @@
+messages:
+  # Message shown to players when trying to use blocked commands
+  blocked: "&cYou do not have permission to execute this command!"
+  # Message upon successful config reload
+  reload-success: "&aBlockCommand configuration reloaded successfully!"
+  # Message when attempting to reload without permissions
+  no-permission: "&cInsufficient permissions!"
+
+# Command descriptions for /help listing
+help-descriptions:
+  msg: "Send a private message to a player"
+  me: "Perform an action in third person"
+  try: "Attempt to perform an action (random 50/50 outcome)"
+  changepassword: "Change your account password"
+  login: "Log into the server"
+  register: "Register an account on the server"
+  help: "Display a list of available commands"
+  co i: "Inspect blocks (CoreProtect)"
+  co inspect: "Inspect blocks (CoreProtect)"
+  blockcommand reload: "Reload plugin configurations"
+  blockcommand grant: "Grant a role to a player"
+  blockcommand revoke: "Revoke a role from a player"
+  blockcommand list: "List player roles or all configured roles"
