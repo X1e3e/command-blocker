@@ -1,0 +1,13 @@
+name: blockcommand
+version: '${version}'
+
+main: skylands.online.blockcommand.Blockcommand
+api-version: '26.2'
+load: POSTWORLD
+
+commands:
+  blockcommand:
+    description: Manage the blockcommand plugin.
+    aliases: [bc]
+    permission: blockcommand.admin
+
